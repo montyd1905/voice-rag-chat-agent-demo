@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 MODEL_NAME = "gpt-3.5-turbo"
 MODEL_TEMPERATURE = 0.7
 CONVERSATION_TURN_LIMIT = 3
-COMMON_STOP_WORDS = ['the', 'and', 'or', 'what', 'who', 'where', 'when', 'why', 'how', 'is', 'are', 'was', 'were']
+QUESTION_TARGET_WORDS = ['what', 'who', 'where', 'when', 'why', 'how', 'which']
+COMMON_STOP_WORDS = ['the', 'and', 'or', 'is', 'are', 'was', 'were', *QUESTION_TARGET_WORDS]
 
 
 class QueryProcessor:
@@ -65,8 +66,12 @@ class QueryProcessor:
             conversation_history = history.get("conversation_history", []) if history else []
             
             # Step 2: Question Rectification (with conversation history)
-            logger.info(f"Rectifying question for session {session_id}")
-            contextually_updated_question = self._rectify_question(query, conversation_history)
+            if settings.SKIP_RECTIFICATION_FOR_SIMPLE_QUERIES and self._is_simple_query(query, conversation_history):
+                logger.info(f"Skipping rectification for simple query: {query}")
+                contextually_updated_question = query if query.strip().endswith('?') else query + '?'
+            else:
+                logger.info(f"Rectifying question for session {session_id}")
+                contextually_updated_question = self._rectify_question(query, conversation_history)
             
             # Step 3: NER Filter
             logger.info(f"Extracting entities from rectified question: {contextually_updated_question}")
@@ -137,6 +142,25 @@ class QueryProcessor:
                 "response": None,
                 "audio_response": None
             }
+    
+    def _is_simple_query(self, query: str, conversation_history: List[Dict]) -> bool:
+        """Check if query is simple enough to skip rectification"""
+        # Skip if query is short and clear (no pronouns/references)
+        query_lower = query.lower().strip()
+        
+        # Check for pronouns/references that need context
+        has_pronouns = any(pronoun in query_lower for pronoun in COMMON_STOP_WORDS)
+        
+        # Skip rectification if:
+        # 1. Query is short (<= 10 words)
+        # 2. No pronouns/references
+        # 3. Already ends with question mark or starts with question word
+        # 4. No conversation history (nothing to reference)
+        is_short = len(query.split()) <= 10
+        is_question = query.strip().endswith('?') or any(query_lower.startswith(qw) for qw in QUESTION_TARGET_WORDS)
+        no_history = not conversation_history
+        
+        return is_short and not has_pronouns and (is_question or no_history)
     
     def _rectify_question(self, query: str, conversation_history: List[Dict]) -> str:
         """Question Rectification using LLM with conversation history"""
@@ -337,10 +361,10 @@ Generate a simple, direct question:""")
                     logger.info(f"Found {len(search_results)} results from semantic search")
                     return search_results[:top_k]
                 
-                # if still no results, try with even lower threshold and text matching
-                if search_terms:
-                    logger.info(f"No results with threshold {settings.SIMILARITY_THRESHOLD}, trying with text matching and lower threshold")
-                    # build text filter for WHERE clause (not just boost)
+                # if still no results and we have search terms, try one optimized fallback
+                if not search_results and not text_matched_results and search_terms:
+                    # optimized fallback: combine text matching with very low similarity threshold
+                    logger.info(f"No results with threshold {settings.SIMILARITY_THRESHOLD}, trying optimized fallback")
                     text_where_conditions = []
                     text_where_params = []
                     for term in search_terms[:3]:  # top 3 terms
@@ -351,6 +375,7 @@ Generate a simple, direct question:""")
                         text_where_params.append(f"%{term}%")
                         text_where_params.append(f"%{term}%")
                     
+                    # single optimized query: text match OR similarity > 0.4
                     fallback_query = f"""
                         SELECT 
                             document_id,
@@ -370,29 +395,6 @@ Generate a simple, direct question:""")
                     cur.execute(fallback_query, fallback_params)
                     results = cur.fetchall()
                     
-                    for row in results:
-                        search_results.append({
-                            "document_id": row[0],
-                            "chunk_id": row[1],
-                            "metadata": row[2],
-                            "similarity": float(row[3])
-                        })
-                else:
-                    # pure semantic fallback
-                    logger.info(f"No results with threshold {settings.SIMILARITY_THRESHOLD}, trying lower threshold 0.4")
-                    cur.execute("""
-                        SELECT 
-                            document_id,
-                            chunk_id,
-                            metadata,
-                            1 - (embedding <=> %s::vector) as similarity
-                        FROM document_embeddings
-                        WHERE 1 - (embedding <=> %s::vector) > 0.4
-                        ORDER BY embedding <=> %s::vector
-                        LIMIT %s
-                    """, (embedding_str, embedding_str, embedding_str, top_k))
-                    
-                    results = cur.fetchall()
                     for row in results:
                         search_results.append({
                             "document_id": row[0],

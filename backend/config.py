@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     # Model settings
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     WHISPER_MODEL: str = "small"
-    TTS_MODEL: str = "tts_models/en/ljspeech/tacotron2-DDC"
+    TTS_MODEL: str = "tts_models/en/ljspeech/glow-tts"
     
     # Processing settings
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     SIMILARITY_THRESHOLD: float = 0.7
     QNA_CACHE_THRESHOLD: float = 0.85
     SESSION_TTL: int = 3600  # 1 hour
+    SKIP_RECTIFICATION_FOR_SIMPLE_QUERIES: bool = True
     
     # API settings
     API_V1_PREFIX: str = "/api"

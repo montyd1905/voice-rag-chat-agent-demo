@@ -16,8 +16,9 @@ def get_tts_model():
     if _tts_model is None:
         try:
             from TTS.api import TTS
-            logger.info("Loading TTS model")
-            _tts_model = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False)
+            from config import settings
+            logger.info(f"Loading TTS model: {settings.TTS_MODEL}")
+            _tts_model = TTS(model_name=settings.TTS_MODEL, progress_bar=False)
         except Exception as e:
             logger.error(f"Failed to load TTS model: {e}")
             _tts_model = None

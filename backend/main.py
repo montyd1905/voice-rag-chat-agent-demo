@@ -191,8 +191,14 @@ async def submit_voice_query(
         # read audio data
         audio_data = await audio.read()
         
-        # process query
-        result = query_processor.process_voice_query(audio_data, session_id)
+        # process query in thread pool to avoid blocking (STT/TTS are CPU-bound)
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            executor,
+            query_processor.process_voice_query,
+            audio_data,
+            session_id
+        )
         
         if result.get("error"):
             raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=result["error"])
