@@ -83,10 +83,10 @@ See [SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) for detailed specifications.
    - PostgreSQL with pgvector extension (port 5432)
    - Redis (port 6379)
    - Backend API (port 8000)
-   - Frontend (port 80)
+   - Frontend (port 3000)
 
 5. **Access the application**:
-   - Frontend: http://localhost
+   - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000
    - API Docs: http://localhost:8000/docs
 
@@ -94,7 +94,7 @@ See [SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) for detailed specifications.
 
 ### Upload Documents
 
-1. Open the frontend at http://localhost
+1. Open the frontend at http://localhost:3000
 2. Use the upload section to upload PDF or image files
 3. Documents will be processed through the indexing pipeline
 4. Check the document list for processing status
