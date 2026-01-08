@@ -7,6 +7,47 @@ let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
 
+// Audio context for playing notification tones
+let audioContext = null;
+
+// Initialize audio context (lazy initialization)
+function getAudioContext() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioContext;
+}
+
+// Play a notification tone when response is received
+function playResponseTone() {
+    try {
+        const ctx = getAudioContext();
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        // Connect nodes
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        // Configure tone (pleasant, short beep)
+        oscillator.frequency.value = 800; // Frequency in Hz (pleasant tone)
+        oscillator.type = 'sine'; // Smooth sine wave
+        
+        // Fade in/out for pleasant sound
+        const now = ctx.currentTime;
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01); // Quick fade in
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15); // Fade out
+        
+        // Play tone
+        oscillator.start(now);
+        oscillator.stop(now + 0.15); // Short duration (150ms)
+    } catch (error) {
+        // Silently fail if audio context is not available
+        console.debug('Could not play notification tone:', error);
+    }
+}
+
 // generate session ID
 function generateSessionId() {
     return 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -364,5 +405,10 @@ function addMessage(role, content, source = null, rectifiedQuery = null, audioUr
     messageDiv.innerHTML = messageContent;
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    // Play notification tone when assistant response is received
+    if (role === 'assistant') {
+        playResponseTone();
+    }
 }
 
