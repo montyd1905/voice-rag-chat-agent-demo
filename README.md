@@ -92,6 +92,10 @@ See [SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) for detailed specifications.
 
 ## Usage
 
+### Setup Guide Video
+
+For a visual walkthrough of the setup process, watch the [Setup Guide Video](https://drive.google.com/file/d/1yJXOUXPeG1LxSUcwMNl2gONa3NiDYifD/view).
+
 ### Upload Documents
 
 1. Open the frontend at http://localhost:3000
