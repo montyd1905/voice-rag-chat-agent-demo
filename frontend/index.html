@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Citizen Support Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AI-Powered Citizen Support Assistant</h1>
+            <p>Upload documents and ask questions with voice or text</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Document Upload Section -->
+            <section class="upload-section">
+                <h2>Upload Documents</h2>
+                <div class="upload-area">
+                    <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp" multiple>
+                    <label for="fileInput" class="upload-label">
+                        <span class="upload-icon">📄</span>
+                        <span>Choose files or drag and drop</span>
+                    </label>
+                    <div id="uploadStatus" class="upload-status"></div>
+                    <div id="documentList" class="document-list"></div>
+                </div>
+            </section>
+
+            <!-- Chat Section -->
+            <section class="chat-section">
+                <h2>Chat</h2>
+                <div class="chat-container">
+                    <div id="chatMessages" class="chat-messages"></div>
+                    <div class="chat-input-area">
+                        <div class="input-group">
+                            <input type="text" id="textInput" placeholder="Type your question..." />
+                            <button id="sendTextBtn" class="btn btn-primary">Send</button>
+                        </div>
+                        <div class="voice-group">
+                            <button id="recordBtn" class="btn btn-voice">🎤 Record Voice</button>
+                            <button id="stopRecordBtn" class="btn btn-voice" style="display: none;">⏹ Stop</button>
+                            <div id="recordingStatus" class="recording-status"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
