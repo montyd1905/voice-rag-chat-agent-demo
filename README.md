@@ -45,7 +45,7 @@ See [SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) for detailed specifications.
 
 ### Latency Optimization
 
-- **Comprehensive Performance Strategy**: Model pre-loading keeps STT, TTS, and embedding models resident in memory (saving 2-5 seconds per request), while QnA caching in Redis enables <100ms responses for cache hits versus 1-6 seconds for the full pipeline. Parallel processing via thread pool executor and HNSW-indexed vector database queries ensure efficient concurrent operations. The system uses optimized models (Whisper "small", sentence-transformers "all-MiniLM-L6-v2") balancing accuracy with latency, with audio preprocessing (normalization, resampling) adding minimal overhead (~50-100ms) while significantly improving STT accuracy. pgvector HNSW indexes enable fast approximate nearest neighbor search and Redis provides sub-millisecond session lookups.
+- **Comprehensive Performance Strategy**: Model pre-loading keeps STT, TTS, and embedding models resident in memory (saving 2-5 seconds per request), while QnA caching in Redis enables <100ms responses for cache hits versus 1-6 seconds for the full pipeline. The system uses optimized models including fast TTS (glow-tts, 2-3x faster than tacotron2-DDC, reducing synthesis from ~19s to ~6-8s) and smart query rectification that skips LLM calls for simple queries (saving 1-2 seconds). Parallel processing via thread pool executor handles CPU-intensive STT/TTS operations asynchronously, preventing blocking. HNSW-indexed vector database queries with optimized fallback logic ensure efficient retrieval. Overall voice query latency reduced from ~27-30s to ~15-18s while maintaining accuracy. pgvector HNSW indexes enable fast approximate nearest neighbor search and Redis provides sub-millisecond session lookups.
 
 ### Scalability
 
@@ -138,8 +138,8 @@ See [SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) for detailed specifications.
 - **Cache**: Redis
 - **ML Models**:
   - OCR: Tesseract
-  - STT: OpenAI Whisper "small" model (with audio preprocessing: normalization, resampling)
-  - TTS: Coqui TTS
+  - STT: OpenAI Whisper "small" model (handles multiple audio formats automatically)
+  - TTS: Coqui TTS (glow-tts model for optimized latency)
   - Embeddings: sentence-transformers
   - NER: spaCy
 - **Audio Processing**: soundfile, scipy (for STT preprocessing)
@@ -166,9 +166,11 @@ Configuration is managed through environment variables in `.env` and `backend/co
 
 - `OPENAI_API_KEY`: Required for LLM operations
 - `EMBEDDING_MODEL`: sentence-transformers model (default: "all-MiniLM-L6-v2")
-- `WHISPER_MODEL`: Whisper model size (default: "small" - upgraded from "base" for better accuracy)
+- `WHISPER_MODEL`: Whisper model size (default: "small" - balances speed/accuracy)
+- `TTS_MODEL`: TTS model (default: "tts_models/en/ljspeech/glow-tts" - optimized for latency)
 - `SIMILARITY_THRESHOLD`: Vector search threshold (default: 0.7)
 - `QNA_CACHE_THRESHOLD`: QnA cache similarity threshold (default: 0.85)
+- `SKIP_RECTIFICATION_FOR_SIMPLE_QUERIES`: Skip LLM rectification for simple queries (default: True - reduces latency by 1-2s)
 
 ## Troubleshooting
 

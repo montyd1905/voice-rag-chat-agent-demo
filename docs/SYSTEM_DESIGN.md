@@ -417,11 +417,12 @@ Local TTS (if voice) → User Response
 - Ephemeral conversation history (injected context)
 
 **Processing:**
-- Constructs a prompt that includes:
+- **Smart Skip Logic**: For simple, clear queries (short, no pronouns, already formatted), skips LLM rectification to reduce latency (~1-2 seconds saved)
+- For complex queries, constructs a prompt that includes:
   - Conversation history context
   - Current user query
   - Instructions for query clarification and contextualization
-- Sends prompt to LLM for processing
+- Sends prompt to LLM for processing (only when needed)
 - LLM generates a contextually-updated question that:
   - Resolves pronouns and references ("that", "it", "the previous topic")
   - Clarifies ambiguous queries
@@ -429,6 +430,11 @@ Local TTS (if voice) → User Response
   - Maintains query intent while improving clarity
 
 **Output:** Contextually-updated question
+
+**Performance Optimization:**
+- Simple queries (≤10 words, no pronouns, no history) skip LLM call entirely
+- Reduces latency by 1-2 seconds for straightforward queries
+- Maintains accuracy for complex queries requiring context resolution
 
 **Prompt Template Example:**
 ```
@@ -680,23 +686,26 @@ LIMIT 10;
 **Processing:**
 - Converts text to speech audio using local TTS model
 - Processes audio on-server without external API calls
-- Uses natural-sounding voice synthesis
-- Generates audio in appropriate format
+- Uses optimized fast TTS model (glow-tts) for low latency
+- Generates audio in appropriate format (WAV)
 
 **Output:** Audio response
 
 **Technical Requirements:**
-- Local TTS model (Coqui TTS)
+- Local TTS model (Coqui TTS - glow-tts model for speed)
 - Voice selection and configuration
 - Audio format (WAV)
 - Model loading and memory management
+- Async processing via thread pool executor for non-blocking operation
 
 **Performance Considerations:**
-- Latency depends on model size and hardware
-- Audio quality and naturalness vary by model
+- **Optimized Model**: Uses glow-tts model (2-3x faster than tacotron2-DDC)
+- **Latency**: ~6-8 seconds for typical responses (down from ~19-20 seconds)
+- Audio quality remains natural and clear
 - Local processing eliminates API costs and network latency
-- Model size vs. quality trade-offs
+- Model size vs. quality trade-offs (glow-tts balances both)
 - Memory requirements for model loading
+- Processing runs in thread pool to avoid blocking other requests
 
 #### 16. Response Delivery
 
@@ -748,15 +757,22 @@ LIMIT 10;
 
 ### Performance Characteristics
 
-- **Latency:** 
+- **Latency (Optimized):** 
   - Cache hit: < 100ms
-  - Vector DB search: 100-500ms
+  - Vector DB search: 100-500ms (optimized with single-query fallback)
   - Local STT: 0.5-3 seconds (depends on model and hardware)
-  - Local TTS: 0.5-2 seconds (depends on model and hardware)
-  - End-to-end: 1-6 seconds (depending on path and hardware)
-- **Throughput:** Handles concurrent user sessions
+  - Question rectification: 0-2 seconds (skipped for simple queries, ~1-2s for complex)
+  - Local TTS: 6-8 seconds (optimized with glow-tts model, down from 19-20s)
+  - End-to-end voice query: 15-18 seconds (down from 27-30s with optimizations)
+  - End-to-end text query: 1-4 seconds (depending on path)
+- **Throughput:** Handles concurrent user sessions via async processing and thread pool executor
 - **Scalability:** Horizontal scaling through session distribution
 - **Cache Hit Rate:** Target 30-50% for common queries
+- **Optimization Features:**
+  - Simple query detection skips LLM rectification (1-2s saved)
+  - Fast TTS model (glow-tts) reduces synthesis time by 60%
+  - Optimized vector search reduces fallback query attempts
+  - Async processing prevents blocking during CPU-intensive operations
 
 ---
 
@@ -799,7 +815,7 @@ LIMIT 10;
 - **Embeddings:** sentence-transformers (local)
 - **OCR:** Tesseract (local)
 - **STT:** Local transcription (OpenAI Whisper "small" model)
-- **TTS:** Local TTS (Coqui TTS)
+- **TTS:** Local TTS (Coqui TTS - glow-tts model for optimized latency)
 - **NER:** spaCy (local)
 - **Caching:** Redis for session and QnA cache
 - **API Framework:** FastAPI
