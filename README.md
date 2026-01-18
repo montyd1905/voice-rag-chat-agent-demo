@@ -154,11 +154,31 @@ For a visual walkthrough of the setup process, watch the [Setup Guide Video](htt
 
 ### Backend Development
 
+1. **Create and activate a virtual environment** (recommended):
 ```bash
 cd backend
+
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+# On macOS/Linux:
+source venv/bin/activate
+# On Windows:
+# venv\Scripts\activate
+```
+
+2. **Install dependencies**:
+```bash
 pip install -r requirements.txt
+```
+
+3. **Run the development server**:
+```bash
 uvicorn main:app --reload
 ```
+
+**Note:** Make sure your virtual environment is activated (you'll see `(venv)` in your terminal prompt) before running any Python commands.
 
 ### Frontend Development
 

@@ -26,3 +26,8 @@ aiofiles==23.2.1
 soundfile>=0.12.1
 scipy>=1.11.0
 
+# Testing dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.25.2
